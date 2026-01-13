@@ -9,13 +9,21 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.7",
+    "@google/generative-ai": "^0.24.1",
+    "ai": "^6.0.31",
     "next": "16.1.1",
+    "papaparse": "^5.5.3",
+    "pdf-parse": "^2.4.5",
+    "pdf2json": "^4.0.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/papaparse": "^5.5.2",
+    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
