@@ -20,22 +20,15 @@ export type TransactionCategory =
   | 'Education'
   | 'Travel'
   | 'Personal Care'
-  // Income & Credits
-  | 'Salary'
-  | 'Freelance Income'
+  // Credits (refunds, cashback on credit card statements)
   | 'Refund'
   | 'Cashback'
-  | 'Investment Return'
-  | 'Interest'
-  // Transfers
-  | 'Transfer Out'
-  | 'Transfer In'
-  | 'ATM Withdrawal'
-  | 'UPI Payment'
+  // Payments & Transfers
+  | 'Payment'
   // Catch-all
   | 'Other';
 
-// Categories that represent spending (debits)
+// Categories that represent spending (debits/charges)
 export const SPENDING_CATEGORIES: TransactionCategory[] = [
   'Subscription',
   'Bill & Utility',
@@ -52,21 +45,14 @@ export const SPENDING_CATEGORIES: TransactionCategory[] = [
   'Education',
   'Travel',
   'Personal Care',
-  'Transfer Out',
-  'ATM Withdrawal',
-  'UPI Payment',
   'Other',
 ];
 
-// Categories that represent income (credits)
-export const INCOME_CATEGORIES: TransactionCategory[] = [
-  'Salary',
-  'Freelance Income',
+// Categories that represent credits (refunds, cashback)
+export const CREDIT_CATEGORIES: TransactionCategory[] = [
   'Refund',
   'Cashback',
-  'Investment Return',
-  'Interest',
-  'Transfer In',
+  'Payment',
 ];
 
 export interface Transaction {

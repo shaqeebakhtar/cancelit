@@ -90,9 +90,6 @@ export default function ResultsView({ data, onReset, analysisTime }: ResultsView
 
   // Count transactions by type
   const debitTransactions = data.transactions.filter((t) => t.type === 'debit');
-  const creditTransactions = data.transactions.filter(
-    (t) => t.type === 'credit'
-  );
 
   return (
     <div className="w-full">
@@ -115,46 +112,17 @@ export default function ResultsView({ data, onReset, analysisTime }: ResultsView
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         <div className="stat-box animate-slide-up stagger-1 opacity-0">
-          <p className="font-mono-data text-2xl md:text-3xl font-bold mb-1">
-            <CurrencyDisplay
-              amount={data.summary.totalIncome}
-              currency={data.summary.currency}
-              colorClass="text-[#16A34A]"
-            />
-          </p>
-          <p className="heading-section text-xs text-[#525252]">INCOME</p>
-        </div>
-        <div className="stat-box animate-slide-up stagger-2 opacity-0">
           <p className="font-mono-data text-2xl md:text-3xl font-bold mb-1">
             <CurrencyDisplay
               amount={data.summary.totalSpending}
               currency={data.summary.currency}
             />
           </p>
-          <p className="heading-section text-xs text-[#525252]">SPENT</p>
+          <p className="heading-section text-xs text-[#525252]">TOTAL SPENT</p>
         </div>
-        <div className="stat-box animate-slide-up stagger-3 opacity-0">
-          <p className="font-mono-data text-2xl md:text-3xl font-bold mb-1">
-            <span
-              className={
-                data.summary.netFlow >= 0 ? 'text-[#16A34A]' : 'text-[#DC2626]'
-              }
-            >
-              {data.summary.netFlow >= 0 ? '' : '-'}
-            </span>
-            <CurrencyDisplay
-              amount={Math.abs(data.summary.netFlow)}
-              currency={data.summary.currency}
-              colorClass={
-                data.summary.netFlow >= 0 ? 'text-[#16A34A]' : 'text-[#DC2626]'
-              }
-            />
-          </p>
-          <p className="heading-section text-xs text-[#525252]">NET</p>
-        </div>
-        <div className="stat-box animate-slide-up stagger-4 opacity-0">
+        <div className="stat-box animate-slide-up stagger-2 opacity-0">
           <p className="font-mono-data text-2xl md:text-3xl font-bold mb-1">
             <CurrencyDisplay
               amount={data.summary.subscriptionTotal}
@@ -167,6 +135,18 @@ export default function ResultsView({ data, onReset, analysisTime }: ResultsView
             SUBSCRIPTIONS
           </p>
         </div>
+        <div className="stat-box animate-slide-up stagger-3 opacity-0">
+          <p className="font-mono-data text-2xl md:text-3xl font-bold mb-1">
+            <CurrencyDisplay
+              amount={data.summary.totalCredits}
+              currency={data.summary.currency}
+              colorClass="text-[#16A34A]"
+            />
+          </p>
+          <p className="heading-section text-xs text-[#525252]">
+            REFUNDS/CREDITS
+          </p>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -175,7 +155,6 @@ export default function ResultsView({ data, onReset, analysisTime }: ResultsView
         onTabChange={setActiveTab}
         subscriptionCount={data.subscriptions.length}
         spendingCount={debitTransactions.length}
-        incomeCount={creditTransactions.length}
       />
 
       {/* Tab Content */}
@@ -268,30 +247,6 @@ export default function ResultsView({ data, onReset, analysisTime }: ResultsView
                 transactions={data.transactions}
                 currency={data.summary.currency}
                 type="debit"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Income Tab */}
-        {activeTab === 'income' && (
-          <div className="space-y-8">
-            {/* Income Breakdown Chart */}
-            <SpendingBreakdown
-              data={data.incomeByCategory}
-              total={data.summary.totalIncome}
-              currency={data.summary.currency}
-              title="INCOME BY SOURCE"
-            />
-
-            {/* All Income Transactions */}
-            <div className="mt-8">
-              <h3 className="heading-section text-xl mb-4">ALL INCOME</h3>
-              <div className="brutalist-divider mb-6" />
-              <TransactionList
-                transactions={data.transactions}
-                currency={data.summary.currency}
-                type="credit"
               />
             </div>
           </div>

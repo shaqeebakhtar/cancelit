@@ -5,7 +5,7 @@ import type { FullAnalysisResult } from './analysis';
 
 export type AppStatus = 'idle' | 'analyzing' | 'results' | 'error';
 
-export type ResultsTab = 'subscriptions' | 'spending' | 'income';
+export type ResultsTab = 'subscriptions' | 'spending';
 
 export interface AppState {
   status: AppStatus;

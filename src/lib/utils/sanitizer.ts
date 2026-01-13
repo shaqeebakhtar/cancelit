@@ -143,7 +143,7 @@ function removeDangerousPatterns(content: string): string {
   // Remove javascript: URLs
   let cleaned = content.replace(/javascript:/gi, '');
 
-  // Remove data: URLs (except for legitimate data which wouldn't be in bank statements)
+  // Remove data: URLs (except for legitimate data which wouldn't be in credit card statements)
   cleaned = cleaned.replace(/data:[^,]*,/gi, '');
 
   // Remove vbscript: URLs

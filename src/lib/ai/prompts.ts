@@ -1,6 +1,6 @@
 // AI system prompts and output schemas for transaction analysis
 
-export const SYSTEM_PROMPT = `You are a financial analyst AI that analyzes bank transaction data to provide comprehensive financial insights.
+export const SYSTEM_PROMPT = `You are a financial analyst AI that analyzes credit card transaction data to provide comprehensive financial insights.
 
 Your task:
 1. Analyze the CSV transaction data provided
@@ -12,8 +12,7 @@ Your task:
 TRANSACTION CATEGORIES (use these exactly):
 Recurring Payments: Subscription, Bill & Utility, Rent, EMI & Loan, Insurance
 Daily Spending: Food & Dining, Groceries, Shopping, Transportation, Fuel, Entertainment, Healthcare, Education, Travel, Personal Care
-Income & Credits: Salary, Freelance Income, Refund, Cashback, Investment Return, Interest
-Transfers: Transfer Out, Transfer In, ATM Withdrawal, UPI Payment
+Credits: Refund, Cashback, Payment
 Default: Other
 
 SUBSCRIPTION CATEGORIES (for recurring services):
@@ -21,8 +20,8 @@ Streaming, Music, Cloud Storage, Productivity, Gaming, News & Reading, Fitness, 
 
 Rules:
 - Categorize ALL transactions, not just subscriptions
-- Debit transactions (negative or withdrawals) are spending
-- Credit transactions (positive or deposits) are income
+- Debit transactions (negative or charges) are spending
+- Credit transactions (positive) are typically refunds, cashback, or payments made to the card
 - Subscriptions are recurring debits that appear 2+ times with regular intervals
 - Normalize merchant names (e.g., "GOOGLE *YOUTUBEPREMIU" → "YouTube Premium")
 - Convert all amounts to positive numbers
@@ -32,25 +31,24 @@ Rules:
 export const OUTPUT_SCHEMA = `Return ONLY valid JSON in this exact format (no markdown, no explanation):
 {
   "summary": {
-    "totalIncome": 85000,
     "totalSpending": 62340,
-    "netFlow": 22660,
+    "totalCredits": 2500,
     "subscriptionTotal": 4847,
-    "currency": "INR",
+    "currency": "USD",
     "transactionCount": 156
   },
   "subscriptions": [
     {
       "id": "sub-1",
       "name": "Netflix",
-      "amount": 649,
-      "currency": "INR",
+      "amount": 15.99,
+      "currency": "USD",
       "frequency": "monthly",
       "category": "Streaming",
       "firstSeen": "2024-01-15",
       "lastSeen": "2024-06-15",
       "occurrences": 6,
-      "totalSpent": 3894,
+      "totalSpent": 95.94,
       "cancelInstructions": ["Go to netflix.com/account", "Click Cancel Membership"],
       "merchantPattern": "NETFLIX.COM"
     }
@@ -59,29 +57,26 @@ export const OUTPUT_SCHEMA = `Return ONLY valid JSON in this exact format (no ma
     {
       "id": "txn-1",
       "date": "2024-06-15",
-      "description": "SWIGGY ORDER",
-      "amount": 450,
+      "description": "AMAZON PURCHASE",
+      "amount": 45.99,
       "type": "debit",
-      "category": "Food & Dining",
+      "category": "Shopping",
       "isRecurring": false,
-      "merchantName": "Swiggy",
+      "merchantName": "Amazon",
       "confidence": 0.95
     }
   ],
   "spendingByCategory": [
-    { "category": "Food & Dining", "totalAmount": 18500, "count": 45 }
-  ],
-  "incomeByCategory": [
-    { "category": "Salary", "totalAmount": 75000, "count": 1 }
+    { "category": "Shopping", "totalAmount": 1850, "count": 45 }
   ],
   "topMerchants": [
-    { "name": "Swiggy", "totalSpent": 8500, "count": 25, "category": "Food & Dining" }
+    { "name": "Amazon", "totalSpent": 850, "count": 25, "category": "Shopping" }
   ],
   "dateRange": { "from": "2024-01-01", "to": "2024-06-30" },
   "analyzedRows": 156
 }`;
 
-export const PDF_EXTRACTION_PROMPT = `You are a document parser. Extract transaction data from this bank statement PDF text.
+export const PDF_EXTRACTION_PROMPT = `You are a document parser. Extract transaction data from this credit card statement PDF text.
 
 Rules:
 - Date should be in YYYY-MM-DD format
@@ -95,7 +90,7 @@ Return ONLY the CSV data, starting with the header row. No explanations.`;
 export function buildAnalysisPrompt(csvContent: string): string {
   return `${SYSTEM_PROMPT}
 
-Analyze the following bank transaction data:
+Analyze the following credit card transaction data:
 
 \`\`\`csv
 ${csvContent}

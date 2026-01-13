@@ -39,9 +39,8 @@ export interface AnalysisResult {
 
 // Full analysis format (all transactions)
 export interface FullSummary {
-  totalIncome: number;
   totalSpending: number;
-  netFlow: number;
+  totalCredits: number;
   subscriptionTotal: number;
   currency: string;
   transactionCount: number;
@@ -59,7 +58,6 @@ export interface FullAnalysisResult {
 
   // Breakdowns
   spendingByCategory: CategoryBreakdown[];
-  incomeByCategory: CategoryBreakdown[];
 
   // Insights
   topMerchants: MerchantSummary[];

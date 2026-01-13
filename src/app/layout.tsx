@@ -25,11 +25,11 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'Cancelit — Find Your Hidden Subscriptions',
   description:
-    'Upload your bank statement and discover forgotten subscriptions draining your wallet. Free, private, and secure — your data never leaves your device.',
+    'Upload your credit card statement and discover forgotten subscriptions draining your wallet. Free, private, and secure — your data never leaves your device.',
   keywords: [
     'subscription tracker',
     'cancel subscriptions',
-    'bank statement analyzer',
+    'credit card statement analyzer',
     'money leaks',
     'subscription finder',
   ],
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Cancelit — Find Your Hidden Subscriptions',
     description:
-      'Upload your bank statement and discover forgotten subscriptions draining your wallet.',
+      'Upload your credit card statement and discover forgotten subscriptions draining your wallet.',
     type: 'website',
   },
 };

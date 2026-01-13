@@ -2,7 +2,7 @@
 
 **Find your hidden subscriptions and stop money leaks.**
 
-Cancelit is a privacy-first web app that analyzes your bank statement to discover forgotten subscriptions. Upload a CSV or PDF, see all your recurring payments categorized by type, and get step-by-step instructions to cancel them.
+Cancelit is a privacy-first web app that analyzes your credit card statement to discover forgotten subscriptions. Upload a CSV or PDF, see all your recurring payments categorized by type, and get step-by-step instructions to cancel them.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16.1-black?logo=next.js)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
@@ -12,7 +12,7 @@ Cancelit is a privacy-first web app that analyzes your bank statement to discove
 ## Features
 
 - **AI-Powered Analysis** — Uses Google Gemini to intelligently detect subscription patterns
-- **CSV & PDF Support** — Upload bank statements in either format
+- **CSV & PDF Support** — Upload credit card statements in either format
 - **Privacy First** — Your data never leaves your device. Nothing is stored on servers.
 - **Categorized Results** — Subscriptions grouped by type (Streaming, Music, Gaming, Fitness, etc.)
 - **Spending Breakdown** — See total monthly and yearly costs at a glance
@@ -97,7 +97,7 @@ src/
 
 ## Usage
 
-1. Export your bank statement as a **CSV** or **PDF** file
+1. Export your credit card statement as a **CSV** or **PDF** file
 2. Drop the file onto Cancelit (or click to browse)
 3. Wait for AI analysis (usually 5-15 seconds)
 4. Review your subscriptions organized by category
@@ -107,7 +107,7 @@ src/
 
 ### CSV Files
 
-The AI automatically detects column structures, so most bank CSV formats work. Common columns recognized:
+The AI automatically detects column structures, so most credit card CSV formats work. Common columns recognized:
 
 - Date, Description, Amount
 - Transaction Date, Merchant, Debit/Credit
@@ -115,14 +115,14 @@ The AI automatically detects column structures, so most bank CSV formats work. C
 
 ### PDF Statements
 
-PDF bank statements are parsed server-side. Works best with text-based PDFs (not scanned images).
+PDF credit card statements are parsed server-side. Works best with text-based PDFs (not scanned images).
 
-### Tested Banks
+### Tested Credit Card Providers
 
 - **India**: HDFC, ICICI, SBI, Axis, Kotak
 - **USA**: Chase, Bank of America, Wells Fargo, Citi
 - **UK**: Barclays, HSBC, Lloyds, NatWest
-- **Others**: Most banks with standard CSV/PDF export
+- **Others**: Most credit card providers with standard CSV/PDF export
 
 ## Privacy & Security
 

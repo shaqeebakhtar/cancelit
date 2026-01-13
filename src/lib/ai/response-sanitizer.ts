@@ -42,16 +42,9 @@ export const VALID_TRANSACTION_CATEGORIES: TransactionCategory[] = [
   'Education',
   'Travel',
   'Personal Care',
-  'Salary',
-  'Freelance Income',
   'Refund',
   'Cashback',
-  'Investment Return',
-  'Interest',
-  'Transfer Out',
-  'Transfer In',
-  'ATM Withdrawal',
-  'UPI Payment',
+  'Payment',
   'Other',
 ];
 
@@ -139,12 +132,12 @@ export function sanitizeFullAnalysisResult(
   );
 
   // Calculate totals from transactions
-  const totalIncome = sanitizedTransactions
-    .filter((t) => t.type === 'credit')
-    .reduce((sum, t) => sum + t.amount, 0);
-
   const totalSpending = sanitizedTransactions
     .filter((t) => t.type === 'debit')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalCredits = sanitizedTransactions
+    .filter((t) => t.type === 'credit')
     .reduce((sum, t) => sum + t.amount, 0);
 
   // Calculate subscription total
@@ -187,31 +180,6 @@ export function sanitizeFullAnalysisResult(
     }))
     .sort((a, b) => b.totalAmount - a.totalAmount);
 
-  // Build income by category
-  const incomeMap = new Map<
-    TransactionCategory,
-    { amount: number; count: number }
-  >();
-  sanitizedTransactions
-    .filter((t) => t.type === 'credit')
-    .forEach((t) => {
-      const current = incomeMap.get(t.category) || { amount: 0, count: 0 };
-      incomeMap.set(t.category, {
-        amount: current.amount + t.amount,
-        count: current.count + 1,
-      });
-    });
-
-  const incomeByCategory: CategoryBreakdown[] = Array.from(incomeMap.entries())
-    .map(([category, data]) => ({
-      category,
-      totalAmount: Math.round(data.amount),
-      count: data.count,
-      percentage:
-        totalIncome > 0 ? Math.round((data.amount / totalIncome) * 100) : 0,
-    }))
-    .sort((a, b) => b.totalAmount - a.totalAmount);
-
   // Build top merchants (from spending)
   const merchantMap = new Map<string, MerchantSummary>();
   sanitizedTransactions
@@ -241,12 +209,11 @@ export function sanitizeFullAnalysisResult(
 
   return {
     summary: {
-      totalIncome: Math.round(totalIncome || result.summary?.totalIncome || 0),
       totalSpending: Math.round(
         totalSpending || result.summary?.totalSpending || 0
       ),
-      netFlow: Math.round(
-        totalIncome - totalSpending || result.summary?.netFlow || 0
+      totalCredits: Math.round(
+        totalCredits || result.summary?.totalCredits || 0
       ),
       subscriptionTotal: Math.round(subscriptionMonthlyTotal),
       currency,
@@ -256,7 +223,6 @@ export function sanitizeFullAnalysisResult(
     subscriptions: sanitizedSubscriptions,
     transactions: sanitizedTransactions,
     spendingByCategory,
-    incomeByCategory,
     topMerchants,
     dateRange: result.dateRange || { from: '', to: '' },
     analyzedRows: result.analyzedRows || sanitizedTransactions.length,

@@ -142,7 +142,7 @@ export default function FileUpload({
 
         {/* Main Text */}
         <h3 className="heading-section text-2xl md:text-3xl mb-3 text-center">
-          DROP YOUR BANK STATEMENT HERE
+          DROP YOUR CREDIT CARD STATEMENT HERE
         </h3>
 
         {/* Divider */}

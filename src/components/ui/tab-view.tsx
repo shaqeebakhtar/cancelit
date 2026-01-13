@@ -7,13 +7,11 @@ interface TabViewProps {
   onTabChange: (tab: ResultsTab) => void;
   subscriptionCount: number;
   spendingCount: number;
-  incomeCount: number;
 }
 
 const tabs: { id: ResultsTab; label: string }[] = [
   { id: 'subscriptions', label: 'SUBSCRIPTIONS' },
   { id: 'spending', label: 'ALL SPENDING' },
-  { id: 'income', label: 'INCOME' },
 ];
 
 export default function TabView({
@@ -21,7 +19,6 @@ export default function TabView({
   onTabChange,
   subscriptionCount,
   spendingCount,
-  incomeCount,
 }: TabViewProps) {
   const getCounts = (tab: ResultsTab): number => {
     switch (tab) {
@@ -29,8 +26,6 @@ export default function TabView({
         return subscriptionCount;
       case 'spending':
         return spendingCount;
-      case 'income':
-        return incomeCount;
       default:
         return 0;
     }

@@ -7,8 +7,12 @@ interface AnalysisLoaderProps {
   onCancel?: () => void;
 }
 
-// Estimated time in seconds (based on typical analysis duration)
-const ESTIMATED_TIME = 45;
+// Format seconds into MM:SS display
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
 
 const PROGRESS_STEPS = [
   { text: 'Reading file structure', duration: 2000 },
@@ -83,11 +87,22 @@ export default function AnalysisLoader({
         ))}
       </div>
 
-      {/* Time & Cancel Button */}
+      {/* Time Info & Cancel Button */}
       <div className="mt-10 flex flex-col items-center gap-4">
-        <span className="text-xs font-mono text-[#525252]">
-          {elapsedSeconds}s / ~{ESTIMATED_TIME}s
-        </span>
+        {/* Elapsed Time Display */}
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-2xl font-mono text-[#0A0A0A] font-medium">
+            {formatTime(elapsedSeconds)}
+          </span>
+          <span className="text-xs text-[#525252]">elapsed</span>
+        </div>
+
+        {/* Duration Notice */}
+        <p className="text-sm text-[#525252] max-w-xs text-center">
+          This analysis typically takes{' '}
+          <span className="font-medium text-[#0A0A0A]">3-5 minutes</span>{' '}
+          depending on your statement size.
+        </p>
 
         {onCancel && (
           <button

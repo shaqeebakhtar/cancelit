@@ -196,8 +196,9 @@ export default function Home() {
                 FOR NOTHING
               </h2>
               <p className="text-lg text-[#525252] mt-4">
-                Upload your bank statement and find every recurring charge
-                draining your account — with step-by-step cancel instructions.
+                Upload your credit card statement and find every recurring
+                charge draining your account — with step-by-step cancel
+                instructions.
               </p>
               <div className="w-32 h-1 bg-[#0A0A0A] mt-4" />
             </div>
@@ -333,8 +334,8 @@ export default function Home() {
                   </div>
                   <h4 className="heading-section text-lg">UPLOAD STATEMENT</h4>
                   <p className="text-sm text-[#525252]">
-                    Drop your bank statement CSV or PDF. Works with any bank.
-                    Your data stays private.
+                    Drop your credit card statement CSV or PDF. Works with any
+                    provider. Your data stays private.
                   </p>
                 </div>
 

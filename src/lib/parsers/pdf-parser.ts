@@ -1,4 +1,4 @@
-// PDF text extraction using pdf2json
+// PDF text extraction using pdf2json with pdf-parse fallback
 
 import { AppError } from '../errors';
 import { sanitizePDFText } from '../utils/sanitizer';
@@ -10,12 +10,102 @@ const PDF_MAGIC = '%PDF-';
 // Minimum text length to consider PDF valid
 const MIN_TEXT_LENGTH = 100;
 
+// Timeout for PDF parsing
+const PDF_PARSE_TIMEOUT = 30000;
+
+/**
+ * Safely decode URI-encoded text from PDF
+ * Some PDFs contain malformed URI encoding, so we handle errors gracefully
+ */
+function safeDecodeURIComponent(text: string): string {
+  if (!text) return '';
+
+  try {
+    // First try standard decoding
+    return decodeURIComponent(text);
+  } catch {
+    // If that fails, try to fix common issues and decode again
+    try {
+      // Replace standalone % signs that aren't part of valid encoding
+      const fixed = text.replace(/%(?![0-9A-Fa-f]{2})/g, '%25');
+      return decodeURIComponent(fixed);
+    } catch {
+      // If all else fails, return the original text with basic cleanup
+      // Replace %20 with space manually for common cases
+      return text
+        .replace(/%20/g, ' ')
+        .replace(/%2F/gi, '/')
+        .replace(/%2C/gi, ',')
+        .replace(/%2E/gi, '.')
+        .replace(/%3A/gi, ':')
+        .replace(/%2D/gi, '-')
+        .replace(/%0A/gi, '\n')
+        .replace(/%0D/gi, '\r');
+    }
+  }
+}
+
+/**
+ * Extract text from PDF using pdf-parse (fallback parser)
+ * This is more reliable for simple PDFs
+ */
+async function extractTextWithPdfParse(buffer: Buffer): Promise<string> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require('pdf-parse');
+
+    const data = await pdfParse(buffer, {
+      // Limit pages to prevent timeouts on large PDFs
+      max: 50,
+    });
+
+    if (!data.text || data.text.trim().length === 0) {
+      throw new AppError(
+        'PDF_SCANNED',
+        'PDF contains no extractable text - may be scanned'
+      );
+    }
+
+    if (data.text.trim().length < MIN_TEXT_LENGTH) {
+      throw new AppError(
+        'PDF_SCANNED',
+        `PDF text too short (${data.text.length} chars) - may be scanned or image-based`
+      );
+    }
+
+    return data.text;
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new AppError('PARSE_ERROR', `pdf-parse failed: ${message}`);
+  }
+}
+
 /**
  * Extract text from PDF using pdf2json
  * This runs on the server-side only
  */
-export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+async function extractTextWithPdf2json(buffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
+    let isSettled = false;
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const safeResolve = (value: string) => {
+      if (isSettled) return;
+      isSettled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      resolve(value);
+    };
+
+    const safeReject = (error: AppError) => {
+      if (isSettled) return;
+      isSettled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      reject(error);
+    };
+
     try {
       // Dynamic import for pdf2json
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -23,21 +113,58 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 
       const pdfParser = new PDFParser(null, true); // true = don't combine text items
 
-      pdfParser.on('pdfParser_dataError', (errData: { parserError: Error }) => {
-        const message = errData.parserError?.message || 'Unknown PDF error';
+      // Add timeout to prevent hanging on problematic PDFs
+      timeoutId = setTimeout(() => {
+        safeReject(
+          new AppError(
+            'PARSE_ERROR',
+            'PDF parsing timed out - file may be too complex or corrupted'
+          )
+        );
+      }, PDF_PARSE_TIMEOUT);
 
-        if (
-          message.includes('password') ||
-          message.includes('encrypted') ||
-          message.includes('decrypt')
-        ) {
-          reject(new AppError('PDF_PROTECTED', message));
-        } else {
-          reject(
-            new AppError('PARSE_ERROR', `Failed to parse PDF: ${message}`)
-          );
+      pdfParser.on(
+        'pdfParser_dataError',
+        (errData: { parserError?: Error } | Error | string) => {
+          // Handle various error formats from pdf2json
+          let message = 'Unknown PDF error';
+
+          if (typeof errData === 'string') {
+            message = errData;
+          } else if (errData instanceof Error) {
+            message = errData.message;
+          } else if (errData && typeof errData === 'object') {
+            if ('parserError' in errData && errData.parserError) {
+              message = errData.parserError.message || 'PDF parsing failed';
+            } else if ('message' in errData) {
+              message = String((errData as { message: unknown }).message);
+            }
+          }
+
+          if (
+            message.includes('password') ||
+            message.includes('encrypted') ||
+            message.includes('decrypt')
+          ) {
+            safeReject(new AppError('PDF_PROTECTED', message));
+          } else if (
+            message.includes('Invalid') ||
+            message.includes('corrupt') ||
+            message.includes('malformed')
+          ) {
+            safeReject(
+              new AppError(
+                'INVALID_FORMAT',
+                'PDF file appears to be corrupted or invalid'
+              )
+            );
+          } else {
+            safeReject(
+              new AppError('PARSE_ERROR', `Failed to parse PDF: ${message}`)
+            );
+          }
         }
-      });
+      );
 
       pdfParser.on(
         'pdfParser_dataReady',
@@ -58,9 +185,11 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
               for (const textItem of page.Texts || []) {
                 for (const run of textItem.R || []) {
                   if (run.T) {
-                    // Decode URI-encoded text
-                    const decodedText = decodeURIComponent(run.T);
-                    pageTexts.push(decodedText);
+                    // Safely decode URI-encoded text
+                    const decodedText = safeDecodeURIComponent(run.T);
+                    if (decodedText) {
+                      pageTexts.push(decodedText);
+                    }
                   }
                 }
               }
@@ -72,7 +201,7 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
             const fullText = textContent.join('\n');
 
             if (!fullText || fullText.trim().length === 0) {
-              reject(
+              safeReject(
                 new AppError(
                   'PDF_SCANNED',
                   'PDF contains no extractable text - may be scanned'
@@ -82,7 +211,7 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
             }
 
             if (fullText.trim().length < MIN_TEXT_LENGTH) {
-              reject(
+              safeReject(
                 new AppError(
                   'PDF_SCANNED',
                   `PDF text too short (${fullText.length} chars) - may be scanned or image-based`
@@ -91,11 +220,11 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
               return;
             }
 
-            resolve(fullText);
+            safeResolve(fullText);
           } catch (error) {
             const message =
               error instanceof Error ? error.message : 'Unknown error';
-            reject(
+            safeReject(
               new AppError(
                 'PARSE_ERROR',
                 `Failed to process PDF data: ${message}`
@@ -106,12 +235,83 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
       );
 
       // Parse the buffer
-      pdfParser.parseBuffer(buffer);
+      try {
+        pdfParser.parseBuffer(buffer);
+      } catch (parseError) {
+        const message =
+          parseError instanceof Error ? parseError.message : 'Unknown error';
+        safeReject(
+          new AppError(
+            'PARSE_ERROR',
+            `Failed to initialize PDF parsing: ${message}`
+          )
+        );
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      reject(new AppError('PARSE_ERROR', `Failed to parse PDF: ${message}`));
+      safeReject(
+        new AppError('PARSE_ERROR', `Failed to parse PDF: ${message}`)
+      );
     }
   });
+}
+
+/**
+ * Extract text from PDF using multiple parsers with fallback
+ * Tries pdf2json first, then falls back to pdf-parse
+ */
+export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  const errors: string[] = [];
+
+  // Try pdf2json first (better at preserving layout)
+  try {
+    console.log('Attempting PDF extraction with pdf2json...');
+    const text = await extractTextWithPdf2json(buffer);
+    console.log('pdf2json extraction successful');
+    return text;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.log('pdf2json failed:', msg);
+    errors.push(`pdf2json: ${msg}`);
+
+    // If it's a protected PDF or scanned, don't try fallback
+    if (error instanceof AppError) {
+      if (
+        error.userError.code === 'PDF_PROTECTED' ||
+        error.userError.code === 'PDF_SCANNED'
+      ) {
+        throw error;
+      }
+    }
+  }
+
+  // Fallback to pdf-parse
+  try {
+    console.log('Attempting PDF extraction with pdf-parse fallback...');
+    const text = await extractTextWithPdfParse(buffer);
+    console.log('pdf-parse extraction successful');
+    return text;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.log('pdf-parse failed:', msg);
+    errors.push(`pdf-parse: ${msg}`);
+
+    // If it's a specific error type from fallback, throw it
+    if (error instanceof AppError) {
+      if (
+        error.userError.code === 'PDF_PROTECTED' ||
+        error.userError.code === 'PDF_SCANNED'
+      ) {
+        throw error;
+      }
+    }
+  }
+
+  // Both parsers failed
+  throw new AppError(
+    'PARSE_ERROR',
+    `Unable to parse PDF. Tried multiple parsers: ${errors.join('; ')}`
+  );
 }
 
 /**

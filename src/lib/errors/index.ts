@@ -13,27 +13,28 @@ export const ERROR_CATALOG: Record<string, UserError> = {
     code: 'FILE_EMPTY',
     title: 'Empty File',
     message: 'The file you uploaded contains no data.',
-    suggestion: 'Please upload a bank statement with transaction data.',
+    suggestion: 'Please upload a credit card statement with transaction data.',
   },
   FILE_TOO_LARGE: {
     code: 'FILE_TOO_LARGE',
     title: 'File Too Large',
     message: 'The file exceeds the 10MB limit.',
     suggestion:
-      'Try exporting a shorter date range from your bank, or remove unnecessary columns.',
+      'Try exporting a shorter date range from your credit card provider, or remove unnecessary columns.',
   },
   INVALID_FORMAT: {
     code: 'INVALID_FORMAT',
     title: 'Invalid File Format',
     message: "This doesn't appear to be a valid CSV or PDF file.",
-    suggestion: 'Please upload your bank statement in CSV or PDF format.',
+    suggestion:
+      'Please upload your credit card statement in CSV or PDF format.',
   },
   INVALID_EXTENSION: {
     code: 'INVALID_EXTENSION',
     title: 'Unsupported File Type',
     message: 'Only CSV and PDF files are supported.',
     suggestion:
-      'Please export your bank statement as a CSV or PDF file and try again.',
+      'Please export your credit card statement as a CSV or PDF file and try again.',
   },
   NO_TRANSACTIONS: {
     code: 'NO_TRANSACTIONS',
@@ -59,19 +60,21 @@ export const ERROR_CATALOG: Record<string, UserError> = {
     title: 'Missing Columns',
     message: 'The file needs at least 3 columns (Date, Description, Amount).',
     suggestion:
-      'Please ensure your bank statement export includes all transaction details.',
+      'Please ensure your credit card statement export includes all transaction details.',
   },
   INSUFFICIENT_ROWS: {
     code: 'INSUFFICIENT_ROWS',
     title: 'Not Enough Data',
     message: 'The file needs at least 5 transactions to analyze.',
-    suggestion: 'Try exporting a longer date range from your bank.',
+    suggestion:
+      'Try exporting a longer date range from your credit card provider.',
   },
   PARSE_ERROR: {
     code: 'PARSE_ERROR',
-    title: 'File Corrupted',
-    message: 'The file appears to be corrupted or incorrectly formatted.',
-    suggestion: 'Try downloading a fresh copy from your bank.',
+    title: 'Unable to Read File',
+    message: 'We could not read this PDF file.',
+    suggestion:
+      'Try exporting your statement as CSV instead, or download a fresh copy from your credit card provider.',
   },
   PDF_PROTECTED: {
     code: 'PDF_PROTECTED',
@@ -87,9 +90,10 @@ export const ERROR_CATALOG: Record<string, UserError> = {
   },
   PDF_NO_TABLES: {
     code: 'PDF_NO_TABLES',
-    title: 'No Tables Found',
-    message: "We couldn't find a transaction table in this PDF.",
-    suggestion: 'Try exporting your statement as CSV for better results.',
+    title: 'No Transactions Found',
+    message: "We couldn't find transaction data in this PDF.",
+    suggestion:
+      'Ensure this is a credit card statement with transactions, or try exporting as CSV for better results.',
   },
   RATE_LIMITED: {
     code: 'RATE_LIMITED',
@@ -113,14 +117,14 @@ export const ERROR_CATALOG: Record<string, UserError> = {
     code: 'CONTENT_SUSPICIOUS',
     title: 'Invalid Content',
     message: 'The file contains unexpected content that cannot be processed.',
-    suggestion: 'Please upload a valid bank statement export.',
+    suggestion: 'Please upload a valid credit card statement export.',
   },
   ENCODING_ERROR: {
     code: 'ENCODING_ERROR',
     title: 'Encoding Issue',
     message: 'The file uses an unsupported text encoding.',
     suggestion:
-      'Try saving the file as UTF-8 encoded CSV, or export again from your bank.',
+      'Try saving the file as UTF-8 encoded CSV, or export again from your credit card provider.',
   },
 };
 
