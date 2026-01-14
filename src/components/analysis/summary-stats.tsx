@@ -4,14 +4,8 @@ interface SummaryStatsProps {
   summary: AnalysisSummary;
 }
 
-function formatCurrency(amount: number, currency: string): string {
-  if (currency === 'INR') {
-    return `₹${amount.toLocaleString('en-IN')}`;
-  }
-  if (currency === 'USD') {
-    return `$${amount.toLocaleString('en-US')}`;
-  }
-  return `${currency} ${amount.toLocaleString()}`;
+function formatCurrency(amount: number): string {
+  return `₹${amount.toLocaleString('en-IN')}`;
 }
 
 export default function SummaryStats({ summary }: SummaryStatsProps) {
@@ -20,7 +14,7 @@ export default function SummaryStats({ summary }: SummaryStatsProps) {
       {/* Monthly Total */}
       <div className="stat-box animate-slide-up stagger-1 opacity-0">
         <p className="font-mono-data text-3xl md:text-4xl font-bold mb-1">
-          {formatCurrency(summary.totalMonthly, summary.currency)}
+          {formatCurrency(summary.totalMonthly)}
         </p>
         <p className="heading-section text-sm text-[#525252]">PER MONTH</p>
       </div>
@@ -38,7 +32,7 @@ export default function SummaryStats({ summary }: SummaryStatsProps) {
       {/* Yearly Total */}
       <div className="stat-box animate-slide-up stagger-3 opacity-0">
         <p className="font-mono-data text-3xl md:text-4xl font-bold mb-1">
-          {formatCurrency(summary.totalYearly, summary.currency)}
+          {formatCurrency(summary.totalYearly)}
         </p>
         <p className="heading-section text-sm text-[#525252]">PER YEAR</p>
       </div>

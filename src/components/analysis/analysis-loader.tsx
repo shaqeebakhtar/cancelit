@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 
 interface AnalysisLoaderProps {
   fileName: string;
+  progress?: number;
+  step?: string;
   onCancel?: () => void;
 }
 
@@ -14,41 +16,37 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-const PROGRESS_STEPS = [
-  { text: 'Reading file structure', duration: 2000 },
-  { text: 'Detecting transaction patterns', duration: 3000 },
-  { text: 'Identifying recurring payments', duration: 4000 },
-  { text: 'Categorizing subscriptions', duration: 5000 },
-  { text: 'Analyzing spending habits', duration: 6000 },
-  { text: 'Generating insights', duration: 8000 },
+// Progress steps for visual display
+const PROGRESS_MILESTONES = [
+  { threshold: 2, text: 'Parsing document' },
+  { threshold: 8, text: 'Queuing analysis' },
+  { threshold: 20, text: 'Reading transaction data' },
+  { threshold: 35, text: 'Detecting transaction patterns' },
+  { threshold: 50, text: 'Categorizing transactions' },
+  { threshold: 70, text: 'Identifying recurring subscriptions' },
+  { threshold: 85, text: 'Generating financial insights' },
+  { threshold: 95, text: 'Finalizing analysis' },
 ];
 
 export default function AnalysisLoader({
   fileName,
+  progress = 0,
+  step,
   onCancel,
 }: AnalysisLoaderProps) {
-  const [elapsedTime, setElapsedTime] = useState(0);
-
-  const elapsedSeconds = Math.floor(elapsedTime / 1000);
-
-  // Derive current step from elapsed time
-  const stepIndex = PROGRESS_STEPS.findIndex(
-    (step) => elapsedTime < step.duration
-  );
-  const currentStep = stepIndex === -1 ? PROGRESS_STEPS.length - 1 : stepIndex;
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   // Track elapsed time
   useEffect(() => {
     const timeInterval = setInterval(() => {
-      setElapsedTime((prev) => prev + 1000);
+      setElapsedSeconds((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(timeInterval);
   }, []);
 
-  // Calculate progress percentage (cap at 95% until done)
-  const maxDuration = PROGRESS_STEPS[PROGRESS_STEPS.length - 1].duration;
-  const progress = Math.min(95, Math.round((elapsedTime / maxDuration) * 100));
+  // Clamp progress to 0-100
+  const displayProgress = Math.min(100, Math.max(0, progress));
 
   return (
     <div className="w-full max-w-2xl mx-auto text-center py-12 animate-fade-in">
@@ -56,12 +54,14 @@ export default function AnalysisLoader({
       <div className="mb-8">
         <div className="flex justify-between items-center mb-2">
           <span className="text-xs font-mono text-[#525252]">PROCESSING</span>
-          <span className="text-xs font-mono text-[#525252]">{progress}%</span>
+          <span className="text-xs font-mono text-[#525252]">
+            {displayProgress}%
+          </span>
         </div>
         <div className="w-full h-2 bg-[#E5E5E5] border border-[#0A0A0A] relative overflow-hidden">
           <div
             className="absolute inset-y-0 left-0 bg-[#0A0A0A] transition-all duration-500 ease-out"
-            style={{ width: `${progress}%` }}
+            style={{ width: `${displayProgress}%` }}
           />
         </div>
       </div>
@@ -76,15 +76,21 @@ export default function AnalysisLoader({
 
       {/* Progress Steps */}
       <div className="space-y-3 text-left max-w-sm mx-auto">
-        {PROGRESS_STEPS.map((step, index) => (
-          <LoadingStep
-            key={step.text}
-            text={step.text}
-            isActive={index === currentStep}
-            isComplete={index < currentStep}
-            delay={index * 0.1}
-          />
-        ))}
+        {PROGRESS_MILESTONES.map((milestone) => {
+          const isComplete = displayProgress >= milestone.threshold;
+          const isActive =
+            displayProgress >= milestone.threshold - 14 &&
+            displayProgress < milestone.threshold + 15;
+
+          return (
+            <LoadingStep
+              key={milestone.threshold}
+              text={milestone.text}
+              isActive={isActive && !isComplete}
+              isComplete={isComplete}
+            />
+          );
+        })}
       </div>
 
       {/* Time Info & Cancel Button */}
@@ -121,21 +127,13 @@ function LoadingStep({
   text,
   isActive,
   isComplete,
-  delay,
 }: {
   text: string;
   isActive: boolean;
   isComplete: boolean;
-  delay: number;
 }) {
   return (
-    <div
-      className="flex items-center gap-3 opacity-0 animate-fade-in"
-      style={{
-        animationDelay: `${delay}s`,
-        animationFillMode: 'forwards',
-      }}
-    >
+    <div className="flex items-center gap-3">
       <div
         className={`w-3 h-3 border-2 transition-all duration-300 ${
           isComplete

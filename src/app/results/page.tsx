@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { FullAnalysisResult } from '@/lib/types';
 import { ResultsView } from '@/components/analysis';
@@ -14,13 +14,12 @@ export default function ResultsPage() {
   const [analysisTime, setAnalysisTime] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Load data from sessionStorage on mount (client-side only)
   useEffect(() => {
-    // Try to load data from sessionStorage
     try {
       const stored = sessionStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored) as FullAnalysisResult;
-        setData(parsed);
+        setData(JSON.parse(stored) as FullAnalysisResult);
       }
       const storedTime = sessionStorage.getItem(STORAGE_TIME_KEY);
       if (storedTime) {
@@ -36,6 +35,7 @@ export default function ResultsPage() {
     // Clear stored data
     try {
       sessionStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_TIME_KEY);
     } catch (error) {
       console.error('Failed to clear stored data:', error);
     }
@@ -43,19 +43,19 @@ export default function ResultsPage() {
     router.push('/');
   };
 
-  // Show loading state briefly
+  // Show loading state briefly while hydrating
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-[#0A0A0A] animate-spin mx-auto mb-4" />
+          <div className="w-8 h-8 border-2 border-[#0A0A0A] border-t-transparent animate-spin mx-auto mb-4 rounded-full" />
           <p className="text-[#525252]">Loading results...</p>
         </div>
       </div>
     );
   }
 
-  // No data - redirect to home
+  // No data - show empty state
   if (!data) {
     return (
       <div className="min-h-screen flex flex-col">

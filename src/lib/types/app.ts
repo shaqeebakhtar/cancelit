@@ -11,6 +11,9 @@ export interface AppState {
   status: AppStatus;
   fileName?: string;
   fileType?: 'csv' | 'pdf';
+  jobId?: string;
+  progress?: number;
+  step?: string;
   data?: FullAnalysisResult;
   error?: UserError;
   activeTab?: ResultsTab;
@@ -25,10 +28,12 @@ export interface FileValidationResult {
 export interface AnalyzeRequest {
   csvContent: string;
   fileType: 'csv' | 'pdf';
+  fileName?: string;
 }
 
 export interface AnalyzeResponse {
   success: boolean;
+  jobId?: string;
   data?: FullAnalysisResult;
   error?: UserError;
 }

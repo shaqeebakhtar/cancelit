@@ -5,25 +5,18 @@ import type { Transaction, TransactionCategory } from '@/lib/types';
 
 interface TransactionListProps {
   transactions: Transaction[];
-  currency: string;
   type: 'debit' | 'credit' | 'all';
 }
 
-function formatCurrency(amount: number, currency: string): string {
-  if (currency === 'INR') {
-    return `₹${amount.toLocaleString('en-IN')}`;
-  }
-  if (currency === 'USD') {
-    return `$${amount.toLocaleString('en-US')}`;
-  }
-  return `${currency} ${amount.toLocaleString()}`;
+function formatCurrency(amount: number): string {
+  return `₹${amount.toLocaleString('en-IN')}`;
 }
 
 function formatDate(dateString: string): string {
   if (!dateString) return '';
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('en-IN', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -37,7 +30,6 @@ const ITEMS_PER_PAGE = 20;
 
 export default function TransactionList({
   transactions,
-  currency,
   type,
 }: TransactionListProps) {
   const [selectedCategory, setSelectedCategory] = useState<
@@ -75,9 +67,7 @@ export default function TransactionList({
         const dateB = new Date(b.date).getTime() || 0;
         return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
       } else {
-        return sortOrder === 'desc'
-          ? b.amount - a.amount
-          : a.amount - b.amount;
+        return sortOrder === 'desc' ? b.amount - a.amount : a.amount - b.amount;
       }
     });
 
@@ -124,7 +114,9 @@ export default function TransactionList({
           <select
             value={selectedCategory}
             onChange={(e) =>
-              handleCategoryChange(e.target.value as TransactionCategory | 'all')
+              handleCategoryChange(
+                e.target.value as TransactionCategory | 'all'
+              )
             }
             className="border-2 border-[#0A0A0A] px-3 py-2 text-sm bg-white"
           >
@@ -211,7 +203,7 @@ export default function TransactionList({
                   }`}
                 >
                   {txn.type === 'credit' ? '+' : '-'}
-                  {formatCurrency(txn.amount, currency)}
+                  {formatCurrency(txn.amount)}
                 </p>
               </div>
             </div>

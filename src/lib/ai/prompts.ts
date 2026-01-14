@@ -34,15 +34,15 @@ export const OUTPUT_SCHEMA = `Return ONLY valid JSON in this exact format (no ma
     "totalSpending": 62340,
     "totalCredits": 2500,
     "subscriptionTotal": 4847,
-    "currency": "USD",
+    "currency": "INR",
     "transactionCount": 156
   },
   "subscriptions": [
     {
       "id": "sub-1",
       "name": "Netflix",
-      "amount": 15.99,
-      "currency": "USD",
+      "amount": 649,
+      "currency": "INR",
       "frequency": "monthly",
       "category": "Streaming",
       "firstSeen": "2024-01-15",

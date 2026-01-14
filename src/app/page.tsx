@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { AppState, FullAnalysisResult } from '@/lib/types';
+import type { AppState } from '@/lib/types';
 import type { UserError } from '@/lib/errors';
+import type { JobStatusResponse } from '@/lib/types/jobs';
 import { parseCSV, quickValidateFile } from '@/lib/parsers/csv-parser';
 import { isAppError } from '@/lib/errors';
 import { FileUpload } from '@/components/upload';
@@ -13,11 +14,137 @@ import { ErrorView } from '@/components/error';
 
 const STORAGE_KEY = 'cancelit_analysis_result';
 const STORAGE_TIME_KEY = 'cancelit_analysis_time';
+const POLLING_INTERVAL = 10000; // Poll every 10 seconds
 
 export default function Home() {
   const router = useRouter();
   const [state, setState] = useState<AppState>({ status: 'idle' });
+  const startTimeRef = useRef<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Poll for job status
+  const pollJobStatus = useCallback(
+    async (jobId: string) => {
+      try {
+        const response = await fetch(`/api/analyze/status/${jobId}`, {
+          signal: abortControllerRef.current?.signal,
+        });
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            // Job not found or expired
+            setState({
+              status: 'error',
+              error: {
+                code: 'JOB_EXPIRED',
+                title: 'Analysis Expired',
+                message: 'Your analysis session has expired.',
+                suggestion:
+                  'Please upload your file again to start a new analysis.',
+              },
+            });
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+            }
+            return;
+          }
+          throw new Error(`Status check failed: ${response.status}`);
+        }
+
+        const result: JobStatusResponse = await response.json();
+
+        // Update state with progress
+        setState((prev) => ({
+          ...prev,
+          progress: result.progress,
+          step: result.step,
+        }));
+
+        // Handle completion
+        if (result.status === 'complete' && result.data) {
+          // Stop polling
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+          }
+
+          // Calculate analysis time
+          const analysisTime = startTimeRef.current
+            ? Math.round((Date.now() - startTimeRef.current) / 1000)
+            : 0;
+
+          // Store in sessionStorage
+          try {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(result.data));
+            sessionStorage.setItem(STORAGE_TIME_KEY, String(analysisTime));
+          } catch (storageError) {
+            console.error('Failed to store results:', storageError);
+          }
+
+          // Clean up job from Redis (fire and forget)
+          fetch(`/api/analyze/cleanup/${jobId}`, { method: 'DELETE' }).catch(
+            (err) => console.error('Failed to cleanup job:', err)
+          );
+
+          // Navigate to results
+          router.push('/results');
+        }
+
+        // Handle failure
+        if (result.status === 'failed' && result.error) {
+          // Stop polling
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+          }
+
+          // Clean up failed job from Redis (fire and forget)
+          fetch(`/api/analyze/cleanup/${jobId}`, { method: 'DELETE' }).catch(
+            (err) => console.error('Failed to cleanup job:', err)
+          );
+
+          setState({
+            status: 'error',
+            error: result.error,
+          });
+        }
+
+        // Handle cancellation (user cancelled from another tab or server-side)
+        if (result.status === 'cancelled') {
+          // Stop polling
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+          }
+
+          // Clean up cancelled job from Redis (fire and forget)
+          fetch(`/api/analyze/cleanup/${jobId}`, { method: 'DELETE' }).catch(
+            (err) => console.error('Failed to cleanup job:', err)
+          );
+
+          setState({ status: 'idle' });
+        }
+      } catch (error) {
+        // Ignore abort errors
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
+
+        console.error('Polling error:', error);
+
+        // Don't stop polling on transient errors, just log them
+        // The next poll might succeed
+      }
+    },
+    [router]
+  );
 
   const handleFileSelect = useCallback(
     async (file: File) => {
@@ -36,17 +163,21 @@ export default function Home() {
         return;
       }
 
+      // Set initial analyzing state
       setState({
         status: 'analyzing',
         fileName: file.name,
         fileType: quickCheck.fileType as 'csv' | 'pdf',
+        progress: 0,
+        step: 'Uploading file...',
       });
 
       // Create new AbortController for this request
       abortControllerRef.current = new AbortController();
       const { signal } = abortControllerRef.current;
 
-      const startTime = Date.now();
+      // Use ref for start time to avoid stale closure issues
+      startTimeRef.current = Date.now();
 
       try {
         let response: Response;
@@ -60,6 +191,7 @@ export default function Home() {
             body: JSON.stringify({
               csvContent,
               fileType: 'csv',
+              fileName: file.name,
             }),
             signal,
           });
@@ -83,23 +215,30 @@ export default function Home() {
           const error: UserError = result.error || {
             code: 'AI_ERROR',
             title: 'Analysis Failed',
-            message: 'Failed to analyze your transactions.',
+            message: 'Failed to start your analysis.',
             suggestion: 'Please try again with a different file.',
           };
           setState({ status: 'error', error });
           return;
         }
 
-        // Success! Store in sessionStorage and redirect to results page
-        const data: FullAnalysisResult = result.data;
-        const analysisTime = Math.round((Date.now() - startTime) / 1000);
-        try {
-          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-          sessionStorage.setItem(STORAGE_TIME_KEY, String(analysisTime));
-        } catch (storageError) {
-          console.error('Failed to store results:', storageError);
-        }
-        router.push('/results');
+        // Success! Got a jobId - start polling
+        const { jobId } = result;
+
+        setState((prev) => ({
+          ...prev,
+          jobId,
+          progress: 5,
+          step: 'Analysis queued...',
+        }));
+
+        // Start polling for status
+        pollingIntervalRef.current = setInterval(() => {
+          pollJobStatus(jobId);
+        }, POLLING_INTERVAL);
+
+        // Do an immediate first poll
+        pollJobStatus(jobId);
       } catch (error) {
         // Handle abort - user cancelled, just return silently
         if (error instanceof Error && error.name === 'AbortError') {
@@ -146,19 +285,46 @@ export default function Home() {
         });
       }
     },
-    [router]
+    [pollJobStatus]
   );
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = useCallback(async () => {
+    // Get jobId before resetting state
+    const jobId = state.jobId;
+
+    // Stop polling
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+
     // Abort any ongoing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
+
+    // Cancel the job on the server, then cleanup (fire and forget)
+    if (jobId) {
+      fetch(`/api/analyze/cancel/${jobId}`, { method: 'POST' })
+        .then(() =>
+          fetch(`/api/analyze/cleanup/${jobId}`, { method: 'DELETE' })
+        )
+        .catch((err) => console.error('Failed to cancel/cleanup job:', err));
+    }
+
+    startTimeRef.current = null;
     setState({ status: 'idle' });
-  }, []);
+  }, [state.jobId]);
 
   const handleReset = useCallback(() => {
+    // Stop polling if any
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+
+    startTimeRef.current = null;
     setState({ status: 'idle' });
   }, []);
 
@@ -367,7 +533,12 @@ export default function Home() {
 
         {/* Analyzing State - Loader */}
         {state.status === 'analyzing' && state.fileName && (
-          <AnalysisLoader fileName={state.fileName} onCancel={handleCancel} />
+          <AnalysisLoader
+            fileName={state.fileName}
+            progress={state.progress}
+            step={state.step}
+            onCancel={handleCancel}
+          />
         )}
 
         {/* Error State */}

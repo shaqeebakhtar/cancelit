@@ -1,5 +1,6 @@
+// Analysis API route - triggers background job via Inngest
+
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeTransactions } from '@/lib/ai/gemini-client';
 import { truncateForAnalysis } from '@/lib/parsers/csv-parser';
 import { sanitizeCSVContent } from '@/lib/utils/sanitizer';
 import { validateCSVStructure } from '@/lib/validators/content-validator';
@@ -10,8 +11,10 @@ import {
   getRateLimitHeaders,
 } from '@/lib/utils/rate-limiter';
 import { AppError, isAppError, getErrorResponse } from '@/lib/errors';
+import { inngest } from '@/lib/inngest';
+import { createJob } from '@/lib/redis/jobs';
 
-export const maxDuration = 60; // Allow up to 60 seconds for AI processing
+export const maxDuration = 60; // Fast response - actual work done by Inngest
 
 export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
@@ -24,6 +27,7 @@ export async function POST(request: NextRequest) {
     const contentType = request.headers.get('content-type') || '';
     let csvContent: string;
     let fileType: 'csv' | 'pdf' = 'csv';
+    let fileName = 'statement';
 
     // Step 2: Parse request based on content type
     if (contentType.includes('multipart/form-data')) {
@@ -39,6 +43,8 @@ export async function POST(request: NextRequest) {
       if (file.size > 10 * 1024 * 1024) {
         throw new AppError('FILE_TOO_LARGE', 'File exceeds 10MB limit');
       }
+
+      fileName = file.name;
 
       if (fileType === 'pdf') {
         // Process PDF using pdf2json and extract transactions
@@ -59,6 +65,7 @@ export async function POST(request: NextRequest) {
 
       csvContent = body.csvContent;
       fileType = body.fileType === 'pdf' ? 'pdf' : 'csv';
+      fileName = body.fileName || 'statement.csv';
 
       if (!csvContent || typeof csvContent !== 'string') {
         throw new AppError('FILE_EMPTY', 'No content provided in request');
@@ -89,21 +96,34 @@ export async function POST(request: NextRequest) {
     // Step 6: Truncate large content
     const truncatedContent = truncateForAnalysis(sanitizedContent, 1000);
 
-    // Step 7: Analyze with AI
-    const result = await analyzeTransactions(truncatedContent);
+    // Step 7: Create job and trigger Inngest
+    const jobId = crypto.randomUUID();
 
-    // Step 8: Validate result
-    if (!result || !result.summary) {
-      throw new AppError('AI_ERROR', 'AI returned invalid response structure');
-    }
+    // Create job in Redis with pending status
+    await createJob(jobId, fileName, fileType);
 
-    // Return success response with rate limit headers
+    // Send event to Inngest for background processing
+    await inngest.send({
+      name: 'analyze.requested',
+      data: {
+        jobId,
+        csvContent: truncatedContent,
+        fileType,
+        fileName,
+      },
+    });
+
+    // Return jobId immediately (~100ms response time)
     const headers = getRateLimitHeaders(clientIP);
 
     return NextResponse.json(
-      { success: true, data: result },
       {
-        status: 200,
+        success: true,
+        jobId,
+        message: 'Analysis started',
+      },
+      {
+        status: 202, // Accepted - processing asynchronously
         headers: {
           ...headers,
           'Content-Type': 'application/json',
@@ -164,6 +184,7 @@ export async function GET() {
   return NextResponse.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
+    mode: 'background-processing',
     limits: {
       maxFileSize: '10MB',
       maxRows: 1000,

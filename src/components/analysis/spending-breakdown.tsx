@@ -5,41 +5,34 @@ import type { CategoryBreakdown } from '@/lib/types';
 interface SpendingBreakdownProps {
   data: CategoryBreakdown[];
   total: number;
-  currency: string;
   title?: string;
 }
 
-function formatCurrency(amount: number, currency: string): string {
-  if (currency === 'INR') {
-    return `₹${amount.toLocaleString('en-IN')}`;
-  }
-  if (currency === 'USD') {
-    return `$${amount.toLocaleString('en-US')}`;
-  }
-  return `${currency} ${amount.toLocaleString()}`;
+function formatCurrency(amount: number): string {
+  return `₹${amount.toLocaleString('en-IN')}`;
 }
 
 // Category colors for visual distinction
 const CATEGORY_COLORS: Record<string, string> = {
   'Food & Dining': '#DC2626',
-  'Groceries': '#EA580C',
-  'Shopping': '#D97706',
-  'Transportation': '#CA8A04',
-  'Fuel': '#65A30D',
-  'Entertainment': '#16A34A',
-  'Healthcare': '#059669',
-  'Education': '#0D9488',
-  'Travel': '#0891B2',
+  Groceries: '#EA580C',
+  Shopping: '#D97706',
+  Transportation: '#CA8A04',
+  Fuel: '#65A30D',
+  Entertainment: '#16A34A',
+  Healthcare: '#059669',
+  Education: '#0D9488',
+  Travel: '#0891B2',
   'Personal Care': '#0284C7',
-  'Subscription': '#2563EB',
+  Subscription: '#2563EB',
   'Bill & Utility': '#4F46E5',
-  'Rent': '#7C3AED',
+  Rent: '#7C3AED',
   'EMI & Loan': '#9333EA',
-  'Insurance': '#C026D3',
-  'Refund': '#16A34A',
-  'Cashback': '#059669',
-  'Payment': '#6B7280',
-  'Other': '#9CA3AF',
+  Insurance: '#C026D3',
+  Refund: '#16A34A',
+  Cashback: '#059669',
+  Payment: '#6B7280',
+  Other: '#9CA3AF',
 };
 
 function getCategoryColor(category: string): string {
@@ -49,7 +42,6 @@ function getCategoryColor(category: string): string {
 export default function SpendingBreakdown({
   data,
   total,
-  currency,
   title = 'SPENDING BREAKDOWN',
 }: SpendingBreakdownProps) {
   if (data.length === 0) {
@@ -67,9 +59,7 @@ export default function SpendingBreakdown({
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="heading-section text-xl">{title}</h3>
-        <p className="font-mono-data text-lg">
-          {formatCurrency(total, currency)}
-        </p>
+        <p className="font-mono-data text-lg">{formatCurrency(total)}</p>
       </div>
 
       {/* Divider */}
@@ -94,17 +84,14 @@ export default function SpendingBreakdown({
               {/* Category Header */}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3"
-                    style={{ backgroundColor: color }}
-                  />
+                  <div className="w-3 h-3" style={{ backgroundColor: color }} />
                   <span className="text-sm font-medium">{item.category}</span>
                   <span className="text-xs text-[#525252]">
                     ({item.count} transaction{item.count !== 1 ? 's' : ''})
                   </span>
                 </div>
                 <span className="font-mono-data text-sm">
-                  {formatCurrency(item.totalAmount, currency)}
+                  {formatCurrency(item.totalAmount)}
                 </span>
               </div>
 

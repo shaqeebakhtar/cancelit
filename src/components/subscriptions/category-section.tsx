@@ -5,18 +5,11 @@ interface CategorySectionProps {
   category: SubscriptionCategory;
   subscriptions: Subscription[];
   totalMonthly: number;
-  currency: string;
   index: number;
 }
 
-function formatCurrency(amount: number, currency: string): string {
-  if (currency === 'INR') {
-    return `₹${amount.toLocaleString('en-IN')}`;
-  }
-  if (currency === 'USD') {
-    return `$${amount.toLocaleString('en-US')}`;
-  }
-  return `${currency} ${amount.toLocaleString()}`;
+function formatCurrency(amount: number): string {
+  return `₹${amount.toLocaleString('en-IN')}`;
 }
 
 const categoryIcons: Record<SubscriptionCategory, string> = {
@@ -27,7 +20,7 @@ const categoryIcons: Record<SubscriptionCategory, string> = {
   Gaming: '◆',
   'News & Reading': '▤',
   Fitness: '♥',
-  Finance: '$',
+  Finance: '₹',
   Shopping: '◎',
   'Food & Delivery': '⬡',
   Transportation: '→',
@@ -38,7 +31,6 @@ export default function CategorySection({
   category,
   subscriptions,
   totalMonthly,
-  currency,
   index,
 }: CategorySectionProps) {
   return (
@@ -56,7 +48,7 @@ export default function CategorySection({
           <h3 className="heading-section text-xl md:text-2xl">{category}</h3>
         </div>
         <p className="font-mono-data text-lg text-[#525252]">
-          {formatCurrency(totalMonthly, currency)}/mo
+          {formatCurrency(totalMonthly)}/mo
         </p>
       </div>
 
@@ -66,11 +58,7 @@ export default function CategorySection({
       {/* Subscription Cards */}
       <div className="space-y-4">
         {subscriptions.map((subscription) => (
-          <SubscriptionCard
-            key={subscription.id}
-            subscription={subscription}
-            currency={currency}
-          />
+          <SubscriptionCard key={subscription.id} subscription={subscription} />
         ))}
       </div>
     </section>

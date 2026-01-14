@@ -17,43 +17,35 @@ interface ResultsViewProps {
   analysisTime?: number | null;
 }
 
-function formatCurrency(amount: number, currency: string): string {
-  if (currency === 'INR') {
-    return `₹${amount.toLocaleString('en-IN')}`;
-  }
-  if (currency === 'USD') {
-    return `$${amount.toLocaleString('en-US')}`;
-  }
-  return `${currency} ${amount.toLocaleString()}`;
+function formatCurrency(amount: number): string {
+  return `₹${amount.toLocaleString('en-IN')}`;
 }
 
 // Currency with smaller symbol for display
 function CurrencyDisplay({
   amount,
-  currency,
   className = '',
   colorClass = '',
 }: {
   amount: number;
-  currency: string;
   className?: string;
   colorClass?: string;
 }) {
-  const symbol = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : currency;
-  const formattedNumber =
-    currency === 'INR'
-      ? amount.toLocaleString('en-IN')
-      : amount.toLocaleString('en-US');
+  const formattedNumber = amount.toLocaleString('en-IN');
 
   return (
     <span className={className}>
-      <span className={`${colorClass}`}>{symbol}</span>
+      <span className={colorClass}>₹</span>
       <span className={colorClass}>{formattedNumber}</span>
     </span>
   );
 }
 
-export default function ResultsView({ data, onReset, analysisTime }: ResultsViewProps) {
+export default function ResultsView({
+  data,
+  onReset,
+  analysisTime,
+}: ResultsViewProps) {
   const [activeTab, setActiveTab] = useState<ResultsTab>('subscriptions');
 
   // Group subscriptions by category for the subscriptions tab
@@ -115,10 +107,7 @@ export default function ResultsView({ data, onReset, analysisTime }: ResultsView
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         <div className="stat-box animate-slide-up stagger-1 opacity-0">
           <p className="font-mono-data text-2xl md:text-3xl font-bold mb-1">
-            <CurrencyDisplay
-              amount={data.summary.totalSpending}
-              currency={data.summary.currency}
-            />
+            <CurrencyDisplay amount={data.summary.totalSpending} />
           </p>
           <p className="heading-section text-xs text-[#525252]">TOTAL SPENT</p>
         </div>
@@ -126,7 +115,6 @@ export default function ResultsView({ data, onReset, analysisTime }: ResultsView
           <p className="font-mono-data text-2xl md:text-3xl font-bold mb-1">
             <CurrencyDisplay
               amount={data.summary.subscriptionTotal}
-              currency={data.summary.currency}
               colorClass="text-[#DC2626]"
             />
             <span className="text-sm font-normal text-[#525252]">/mo</span>
@@ -139,7 +127,6 @@ export default function ResultsView({ data, onReset, analysisTime }: ResultsView
           <p className="font-mono-data text-2xl md:text-3xl font-bold mb-1">
             <CurrencyDisplay
               amount={data.summary.totalCredits}
-              currency={data.summary.currency}
               colorClass="text-[#16A34A]"
             />
           </p>
@@ -184,7 +171,6 @@ export default function ResultsView({ data, onReset, analysisTime }: ResultsView
                       groupedSubscriptions[categoryData.category] || []
                     }
                     totalMonthly={Math.round(categoryData.totalMonthly)}
-                    currency={data.summary.currency}
                     index={index}
                   />
                 ))}
@@ -200,7 +186,6 @@ export default function ResultsView({ data, onReset, analysisTime }: ResultsView
             <SpendingBreakdown
               data={data.spendingByCategory}
               total={data.summary.totalSpending}
-              currency={data.summary.currency}
               title="SPENDING BY CATEGORY"
             />
 
@@ -228,10 +213,7 @@ export default function ResultsView({ data, onReset, analysisTime }: ResultsView
                         </p>
                       </div>
                       <p className="font-mono-data font-bold">
-                        {formatCurrency(
-                          merchant.totalSpent,
-                          data.summary.currency
-                        )}
+                        {formatCurrency(merchant.totalSpent)}
                       </p>
                     </div>
                   ))}
@@ -243,11 +225,7 @@ export default function ResultsView({ data, onReset, analysisTime }: ResultsView
             <div className="mt-8">
               <h3 className="heading-section text-xl mb-4">ALL TRANSACTIONS</h3>
               <div className="brutalist-divider mb-6" />
-              <TransactionList
-                transactions={data.transactions}
-                currency={data.summary.currency}
-                type="debit"
-              />
+              <TransactionList transactions={data.transactions} type="debit" />
             </div>
           </div>
         )}

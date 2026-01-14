@@ -5,17 +5,10 @@ import type { Subscription } from '@/lib/types';
 
 interface SubscriptionCardProps {
   subscription: Subscription;
-  currency: string;
 }
 
-function formatCurrency(amount: number, currency: string): string {
-  if (currency === 'INR') {
-    return `₹${amount.toLocaleString('en-IN')}`;
-  }
-  if (currency === 'USD') {
-    return `$${amount.toLocaleString('en-US')}`;
-  }
-  return `${currency} ${amount.toLocaleString()}`;
+function formatCurrency(amount: number): string {
+  return `₹${amount.toLocaleString('en-IN')}`;
 }
 
 function formatFrequency(frequency: string): string {
@@ -32,7 +25,7 @@ function formatDate(dateString: string): string {
   if (!dateString) return '';
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('en-IN', {
       month: 'short',
       year: 'numeric',
     });
@@ -43,7 +36,6 @@ function formatDate(dateString: string): string {
 
 export default function SubscriptionCard({
   subscription,
-  currency,
 }: SubscriptionCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -60,7 +52,7 @@ export default function SubscriptionCard({
           {/* Amount */}
           <div className="text-right">
             <p className="font-mono-data text-lg font-bold">
-              {formatCurrency(subscription.amount, currency)}
+              {formatCurrency(subscription.amount)}
               <span className="text-[#525252] text-sm font-normal">
                 {formatFrequency(subscription.frequency)}
               </span>
@@ -74,9 +66,7 @@ export default function SubscriptionCard({
             <span>Since {formatDate(subscription.firstSeen)}</span>
           )}
           {subscription.totalSpent > 0 && (
-            <span>
-              Total: {formatCurrency(subscription.totalSpent, currency)}
-            </span>
+            <span>Total: {formatCurrency(subscription.totalSpent)}</span>
           )}
           {subscription.occurrences > 0 && (
             <span>{subscription.occurrences} payments</span>

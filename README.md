@@ -21,20 +21,25 @@ Cancelit is a privacy-first web app that analyzes your credit card statement to 
 
 ## Tech Stack
 
-| Category  | Technology                        |
-| --------- | --------------------------------- |
-| Framework | Next.js 16.1 (App Router)         |
-| Language  | TypeScript 5                      |
-| UI        | React 19, Tailwind CSS 4          |
-| AI        | Google Gemini via AI SDK          |
-| Parsing   | Papa Parse (CSV), pdf-parse (PDF) |
+| Category    | Technology                        |
+| ----------- | --------------------------------- |
+| Framework   | Next.js 16.1 (App Router)         |
+| Language    | TypeScript 5                      |
+| UI          | React 19, Tailwind CSS 4          |
+| AI          | Google Gemini via AI SDK          |
+| Parsing     | Papa Parse (CSV), pdf-parse (PDF) |
+| Background  | Inngest (serverless functions)    |
+| Cache/Queue | Upstash Redis                     |
 
 ## Project Structure
 
 ```
 src/
 ├── app/                    # Next.js App Router pages
-│   ├── api/analyze/        # AI analysis API route
+│   ├── api/
+│   │   ├── analyze/        # Analysis submission endpoint
+│   │   │   └── status/     # Job status polling endpoint
+│   │   └── inngest/        # Inngest webhook handler
 │   ├── results/            # Results page
 │   └── page.tsx            # Home page with upload
 ├── components/
@@ -46,7 +51,9 @@ src/
 └── lib/
     ├── ai/                 # Gemini client and prompts
     ├── errors/             # Error types and handling
+    ├── inngest/            # Inngest client and functions
     ├── parsers/            # CSV and PDF parsers
+    ├── redis/              # Upstash Redis client and job storage
     ├── types/              # TypeScript type definitions
     ├── utils/              # Utilities (rate limiter, sanitizer)
     └── validators/         # File and content validators
@@ -99,9 +106,11 @@ src/
 
 1. Export your credit card statement as a **CSV** or **PDF** file
 2. Drop the file onto Cancelit (or click to browse)
-3. Wait for AI analysis (usually 5-15 seconds)
+3. Wait for AI analysis (typically 3-5 minutes for comprehensive analysis)
 4. Review your subscriptions organized by category
 5. Follow the cancel instructions for any subscription you want to stop
+
+**Note**: Analysis runs in the background using Inngest, so you'll see real-time progress updates as your statement is processed.
 
 ## Supported File Formats
 
@@ -151,7 +160,7 @@ Your financial data is sensitive. Here's how Cancelit handles it:
 
 ### Deploy to Vercel (Recommended)
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/cancelit&env=GEMINI_API_KEY)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/cancelit&env=GOOGLE_GENERATIVE_AI_API_KEY,UPSTASH_REDIS_REST_URL,UPSTASH_REDIS_REST_TOKEN,INNGEST_EVENT_KEY,INNGEST_SIGNING_KEY)
 
 ### Manual Deployment
 
@@ -160,13 +169,43 @@ npm run build
 vercel deploy --prod
 ```
 
-Remember to set `GEMINI_API_KEY` in your Vercel environment variables.
+### Post-Deployment Setup
+
+1. Add all environment variables to your Vercel project settings
+2. Register your app with Inngest:
+   - Go to [Inngest Dashboard](https://app.inngest.com/)
+   - Add your app URL: `https://your-domain.vercel.app/api/inngest`
+3. Test the deployment by uploading a sample statement
+
+### Local Development with Inngest
+
+For local development, run the Inngest dev server alongside your Next.js app:
+
+```bash
+# Terminal 1: Start Next.js
+npm run dev
+
+# Terminal 2: Start Inngest dev server
+npx inngest-cli@latest dev
+```
+
+The Inngest dev server will auto-discover your functions at `http://localhost:3000/api/inngest`.
 
 ## Environment Variables
 
-| Variable         | Required | Description                |
-| ---------------- | -------- | -------------------------- |
-| `GEMINI_API_KEY` | Yes      | Your Google Gemini API key |
+| Variable                      | Required | Description                          |
+| ----------------------------- | -------- | ------------------------------------ |
+| `GOOGLE_GENERATIVE_AI_API_KEY`| Yes      | Google Gemini API key                |
+| `UPSTASH_REDIS_REST_URL`      | Yes      | Upstash Redis REST URL               |
+| `UPSTASH_REDIS_REST_TOKEN`    | Yes      | Upstash Redis REST token             |
+| `INNGEST_EVENT_KEY`           | Prod     | Inngest event key (production only)  |
+| `INNGEST_SIGNING_KEY`         | Prod     | Inngest signing key (production only)|
+
+### Getting API Keys
+
+1. **Google Gemini**: Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. **Upstash Redis**: Create a free database at [Upstash Console](https://console.upstash.com/)
+3. **Inngest**: Sign up at [Inngest](https://inngest.com/) and get keys from the dashboard
 
 ## Contributing
 
