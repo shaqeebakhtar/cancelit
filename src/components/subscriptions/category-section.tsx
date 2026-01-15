@@ -1,4 +1,5 @@
 import type { Subscription, SubscriptionCategory } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
 import SubscriptionCard from './subscription-card';
 
 interface CategorySectionProps {
@@ -6,10 +7,7 @@ interface CategorySectionProps {
   subscriptions: Subscription[];
   totalMonthly: number;
   index: number;
-}
-
-function formatCurrency(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN')}`;
+  currency?: string;
 }
 
 const categoryIcons: Record<SubscriptionCategory, string> = {
@@ -32,6 +30,7 @@ export default function CategorySection({
   subscriptions,
   totalMonthly,
   index,
+  currency = 'INR',
 }: CategorySectionProps) {
   return (
     <section
@@ -48,7 +47,7 @@ export default function CategorySection({
           <h3 className="heading-section text-xl md:text-2xl">{category}</h3>
         </div>
         <p className="font-mono-data text-lg text-[#525252]">
-          {formatCurrency(totalMonthly)}/mo
+          {formatCurrency(totalMonthly, currency)}/mo
         </p>
       </div>
 
@@ -58,7 +57,11 @@ export default function CategorySection({
       {/* Subscription Cards */}
       <div className="space-y-4">
         {subscriptions.map((subscription) => (
-          <SubscriptionCard key={subscription.id} subscription={subscription} />
+          <SubscriptionCard
+            key={subscription.id}
+            subscription={subscription}
+            currency={currency}
+          />
         ))}
       </div>
     </section>

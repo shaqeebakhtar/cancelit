@@ -13,3 +13,10 @@ export {
   getRateLimitHeaders,
   withRateLimit,
 } from './rate-limiter';
+
+export {
+  getCurrencySymbol,
+  getCurrencyLocale,
+  formatCurrency,
+  formatNumber,
+} from './currency';

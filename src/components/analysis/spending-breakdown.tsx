@@ -1,15 +1,13 @@
 'use client';
 
 import type { CategoryBreakdown } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
 
 interface SpendingBreakdownProps {
   data: CategoryBreakdown[];
   total: number;
   title?: string;
-}
-
-function formatCurrency(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN')}`;
+  currency?: string;
 }
 
 // Category colors for visual distinction
@@ -43,6 +41,7 @@ export default function SpendingBreakdown({
   data,
   total,
   title = 'SPENDING BREAKDOWN',
+  currency = 'INR',
 }: SpendingBreakdownProps) {
   if (data.length === 0) {
     return (
@@ -59,7 +58,9 @@ export default function SpendingBreakdown({
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="heading-section text-xl">{title}</h3>
-        <p className="font-mono-data text-lg">{formatCurrency(total)}</p>
+        <p className="font-mono-data text-lg">
+          {formatCurrency(total, currency)}
+        </p>
       </div>
 
       {/* Divider */}
@@ -91,7 +92,7 @@ export default function SpendingBreakdown({
                   </span>
                 </div>
                 <span className="font-mono-data text-sm">
-                  {formatCurrency(item.totalAmount)}
+                  {formatCurrency(item.totalAmount, currency)}
                 </span>
               </div>
 

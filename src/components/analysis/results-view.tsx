@@ -6,6 +6,7 @@ import type {
   SubscriptionCategory,
   ResultsTab,
 } from '@/lib/types';
+import { formatCurrency, getCurrencySymbol, formatNumber } from '@/lib/utils';
 import CategorySection from '../subscriptions/category-section';
 import TabView from '../ui/tab-view';
 import SpendingBreakdown from './spending-breakdown';
@@ -17,25 +18,24 @@ interface ResultsViewProps {
   analysisTime?: number | null;
 }
 
-function formatCurrency(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN')}`;
-}
-
 // Currency with smaller symbol for display
 function CurrencyDisplay({
   amount,
+  currency,
   className = '',
   colorClass = '',
 }: {
   amount: number;
+  currency: string;
   className?: string;
   colorClass?: string;
 }) {
-  const formattedNumber = amount.toLocaleString('en-IN');
+  const symbol = getCurrencySymbol(currency);
+  const formattedNumber = formatNumber(amount, currency);
 
   return (
     <span className={className}>
-      <span className={colorClass}>₹</span>
+      <span className={colorClass}>{symbol}</span>
       <span className={colorClass}>{formattedNumber}</span>
     </span>
   );
@@ -47,6 +47,9 @@ export default function ResultsView({
   analysisTime,
 }: ResultsViewProps) {
   const [activeTab, setActiveTab] = useState<ResultsTab>('subscriptions');
+
+  // Get currency from the analysis data
+  const currency = data.summary.currency || 'INR';
 
   // Group subscriptions by category for the subscriptions tab
   const groupedSubscriptions = data.subscriptions.reduce(
@@ -107,7 +110,10 @@ export default function ResultsView({
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         <div className="stat-box animate-slide-up stagger-1 opacity-0">
           <p className="font-mono-data text-2xl md:text-3xl font-bold mb-1">
-            <CurrencyDisplay amount={data.summary.totalSpending} />
+            <CurrencyDisplay
+              amount={data.summary.totalSpending}
+              currency={currency}
+            />
           </p>
           <p className="heading-section text-xs text-[#525252]">TOTAL SPENT</p>
         </div>
@@ -115,6 +121,7 @@ export default function ResultsView({
           <p className="font-mono-data text-2xl md:text-3xl font-bold mb-1">
             <CurrencyDisplay
               amount={data.summary.subscriptionTotal}
+              currency={currency}
               colorClass="text-[#DC2626]"
             />
             <span className="text-sm font-normal text-[#525252]">/mo</span>
@@ -127,6 +134,7 @@ export default function ResultsView({
           <p className="font-mono-data text-2xl md:text-3xl font-bold mb-1">
             <CurrencyDisplay
               amount={data.summary.totalCredits}
+              currency={currency}
               colorClass="text-[#16A34A]"
             />
           </p>
@@ -172,6 +180,7 @@ export default function ResultsView({
                     }
                     totalMonthly={Math.round(categoryData.totalMonthly)}
                     index={index}
+                    currency={currency}
                   />
                 ))}
               </div>
@@ -187,6 +196,7 @@ export default function ResultsView({
               data={data.spendingByCategory}
               total={data.summary.totalSpending}
               title="SPENDING BY CATEGORY"
+              currency={currency}
             />
 
             {/* Top Merchants */}
@@ -213,7 +223,7 @@ export default function ResultsView({
                         </p>
                       </div>
                       <p className="font-mono-data font-bold">
-                        {formatCurrency(merchant.totalSpent)}
+                        {formatCurrency(merchant.totalSpent, currency)}
                       </p>
                     </div>
                   ))}
@@ -225,7 +235,11 @@ export default function ResultsView({
             <div className="mt-8">
               <h3 className="heading-section text-xl mb-4">ALL TRANSACTIONS</h3>
               <div className="brutalist-divider mb-6" />
-              <TransactionList transactions={data.transactions} type="debit" />
+              <TransactionList
+                transactions={data.transactions}
+                type="debit"
+                currency={currency}
+              />
             </div>
           </div>
         )}

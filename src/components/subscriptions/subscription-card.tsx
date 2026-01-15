@@ -2,13 +2,11 @@
 
 import { useState } from 'react';
 import type { Subscription } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
 
 interface SubscriptionCardProps {
   subscription: Subscription;
-}
-
-function formatCurrency(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN')}`;
+  currency?: string;
 }
 
 function formatFrequency(frequency: string): string {
@@ -36,6 +34,7 @@ function formatDate(dateString: string): string {
 
 export default function SubscriptionCard({
   subscription,
+  currency = 'INR',
 }: SubscriptionCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -52,7 +51,7 @@ export default function SubscriptionCard({
           {/* Amount */}
           <div className="text-right">
             <p className="font-mono-data text-lg font-bold">
-              {formatCurrency(subscription.amount)}
+              {formatCurrency(subscription.amount, currency)}
               <span className="text-[#525252] text-sm font-normal">
                 {formatFrequency(subscription.frequency)}
               </span>
@@ -66,7 +65,9 @@ export default function SubscriptionCard({
             <span>Since {formatDate(subscription.firstSeen)}</span>
           )}
           {subscription.totalSpent > 0 && (
-            <span>Total: {formatCurrency(subscription.totalSpent)}</span>
+            <span>
+              Total: {formatCurrency(subscription.totalSpent, currency)}
+            </span>
           )}
           {subscription.occurrences > 0 && (
             <span>{subscription.occurrences} payments</span>

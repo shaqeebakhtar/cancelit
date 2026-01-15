@@ -2,14 +2,12 @@
 
 import { useState, useMemo } from 'react';
 import type { Transaction, TransactionCategory } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
 
 interface TransactionListProps {
   transactions: Transaction[];
   type: 'debit' | 'credit' | 'all';
-}
-
-function formatCurrency(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN')}`;
+  currency?: string;
 }
 
 function formatDate(dateString: string): string {
@@ -31,6 +29,7 @@ const ITEMS_PER_PAGE = 20;
 export default function TransactionList({
   transactions,
   type,
+  currency = 'INR',
 }: TransactionListProps) {
   const [selectedCategory, setSelectedCategory] = useState<
     TransactionCategory | 'all'
@@ -203,7 +202,7 @@ export default function TransactionList({
                   }`}
                 >
                   {txn.type === 'credit' ? '+' : '-'}
-                  {formatCurrency(txn.amount)}
+                  {formatCurrency(txn.amount, currency)}
                 </p>
               </div>
             </div>
