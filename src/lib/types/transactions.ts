@@ -2,6 +2,8 @@
 
 export type TransactionType = 'debit' | 'credit';
 
+export type TransactionStatus = 'completed' | 'failed' | 'pending';
+
 export type TransactionCategory =
   // Recurring Payments
   | 'Subscription'
@@ -65,4 +67,5 @@ export interface Transaction {
   isRecurring: boolean;
   merchantName?: string;
   confidence: number; // AI confidence 0-1
+  status?: TransactionStatus; // Payment status: completed, failed, or pending
 }

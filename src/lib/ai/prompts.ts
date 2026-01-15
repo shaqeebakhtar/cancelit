@@ -44,7 +44,11 @@ Rules:
 - Detect subscription frequency: weekly (~7 days), monthly (~30 days), quarterly (~90 days), yearly (~365 days)
 - If only one occurrence exists, assume "monthly" frequency for known subscription services
 - Provide cancel instructions for known subscription services
-- For failed transactions, still include them but note they didn't complete`;
+- FAILED TRANSACTIONS: Look for "Status" column with values like "Failed", "Declined", "Rejected", "Pending"
+  - EXCLUDE failed transactions from totalSpending, subscriptionTotal, and spendingByCategory
+  - EXCLUDE failed transactions from the subscriptions array
+  - Still include failed transactions in the transactions array but mark them with "status": "failed"
+  - This ensures accurate spending totals (only money actually spent)`;
 
 export const OUTPUT_SCHEMA = `Return ONLY valid JSON in this exact format (no markdown, no explanation):
 {
@@ -95,7 +99,8 @@ export const OUTPUT_SCHEMA = `Return ONLY valid JSON in this exact format (no ma
       "category": "Shopping",
       "isRecurring": false,
       "merchantName": "Amazon",
-      "confidence": 0.95
+      "confidence": 0.95,
+      "status": "completed"
     },
     {
       "id": "txn-2",
@@ -106,7 +111,20 @@ export const OUTPUT_SCHEMA = `Return ONLY valid JSON in this exact format (no ma
       "category": "Subscription",
       "isRecurring": true,
       "merchantName": "GitHub",
-      "confidence": 0.98
+      "confidence": 0.98,
+      "status": "completed"
+    },
+    {
+      "id": "txn-3",
+      "date": "2024-01-10",
+      "description": "DOCUSIGN INC.",
+      "amount": 45.00,
+      "type": "debit",
+      "category": "Subscription",
+      "isRecurring": true,
+      "merchantName": "DocuSign",
+      "confidence": 0.95,
+      "status": "failed"
     }
   ],
   "spendingByCategory": [
@@ -124,7 +142,13 @@ IMPORTANT NOTES:
 - For known SaaS/subscription services, include them in "subscriptions" array even with occurrences: 1
 - Mark transactions for subscription services with "isRecurring": true and category: "Subscription"
 - The "subscriptionTotal" in summary should be the monthly total (sum of all subscription amounts, converting yearly/quarterly to monthly equivalent)
-- Detect currency from the data (look for "Currency" column, or infer from amounts and merchant patterns)`;
+- Detect currency from the data (look for "Currency" column, or infer from amounts and merchant patterns)
+- FAILED TRANSACTIONS:
+  - Add "status" field to each transaction: "completed" or "failed"
+  - DO NOT include failed transactions in totalSpending, totalCredits, subscriptionTotal
+  - DO NOT include failed transactions in the subscriptions array
+  - DO NOT count failed transactions in spendingByCategory totals
+  - Failed transactions should still appear in the transactions array (for user awareness) but with "status": "failed"`;
 
 export const PDF_EXTRACTION_PROMPT = `You are a document parser. Extract transaction data from this credit card statement PDF text.
 

@@ -6,6 +6,7 @@ import type {
   SubscriptionCategory,
   Transaction,
   TransactionCategory,
+  TransactionStatus,
   CategoryBreakdown,
   MerchantSummary,
 } from '../types';
@@ -53,7 +54,7 @@ export const VALID_TRANSACTION_CATEGORIES: TransactionCategory[] = [
  */
 export function cleanJsonResponse(text: string): string {
   let jsonString = text.trim();
-  
+
   if (jsonString.startsWith('```json')) {
     jsonString = jsonString.slice(7);
   }
@@ -63,7 +64,7 @@ export function cleanJsonResponse(text: string): string {
   if (jsonString.endsWith('```')) {
     jsonString = jsonString.slice(0, -3);
   }
-  
+
   return jsonString.trim();
 }
 
@@ -72,7 +73,7 @@ export function cleanJsonResponse(text: string): string {
  */
 export function cleanCsvResponse(text: string): string {
   let csvString = text.trim();
-  
+
   if (csvString.startsWith('```csv')) {
     csvString = csvString.slice(6);
   }
@@ -82,7 +83,7 @@ export function cleanCsvResponse(text: string): string {
   if (csvString.endsWith('```')) {
     csvString = csvString.slice(0, -3);
   }
-  
+
   return csvString.trim();
 }
 
@@ -114,29 +115,53 @@ export function sanitizeFullAnalysisResult(
     merchantPattern: sub.merchantPattern,
   }));
 
-  // Sanitize transactions
+  // Valid transaction statuses
+  const VALID_STATUSES: TransactionStatus[] = [
+    'completed',
+    'failed',
+    'pending',
+  ];
+
+  // Sanitize transactions (preserve status field)
   const sanitizedTransactions: Transaction[] = (result.transactions || []).map(
-    (txn, index) => ({
-      id: txn.id || `txn-${index}`,
-      date: txn.date || '',
-      description: txn.description || 'Unknown',
-      amount: Math.abs(Number(txn.amount) || 0),
-      type: txn.type === 'credit' ? 'credit' : 'debit',
-      category: VALID_TRANSACTION_CATEGORIES.includes(txn.category)
-        ? txn.category
-        : 'Other',
-      isRecurring: Boolean(txn.isRecurring),
-      merchantName: txn.merchantName,
-      confidence: Math.min(1, Math.max(0, Number(txn.confidence) || 0.5)),
-    })
+    (txn, index) => {
+      // Determine status - default to 'completed' if not specified
+      let status: TransactionStatus = 'completed';
+      if (
+        txn.status &&
+        VALID_STATUSES.includes(txn.status as TransactionStatus)
+      ) {
+        status = txn.status as TransactionStatus;
+      }
+
+      return {
+        id: txn.id || `txn-${index}`,
+        date: txn.date || '',
+        description: txn.description || 'Unknown',
+        amount: Math.abs(Number(txn.amount) || 0),
+        type: txn.type === 'credit' ? 'credit' : 'debit',
+        category: VALID_TRANSACTION_CATEGORIES.includes(txn.category)
+          ? txn.category
+          : 'Other',
+        isRecurring: Boolean(txn.isRecurring),
+        merchantName: txn.merchantName,
+        confidence: Math.min(1, Math.max(0, Number(txn.confidence) || 0.5)),
+        status,
+      };
+    }
   );
 
-  // Calculate totals from transactions
-  const totalSpending = sanitizedTransactions
+  // Filter to only completed transactions for calculations
+  const completedTransactions = sanitizedTransactions.filter(
+    (t) => t.status !== 'failed' && t.status !== 'pending'
+  );
+
+  // Calculate totals from COMPLETED transactions only (exclude failed/pending)
+  const totalSpending = completedTransactions
     .filter((t) => t.type === 'debit')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalCredits = sanitizedTransactions
+  const totalCredits = completedTransactions
     .filter((t) => t.type === 'credit')
     .reduce((sum, t) => sum + t.amount, 0);
 
@@ -153,12 +178,12 @@ export function sanitizeFullAnalysisResult(
     return sum + monthlyAmount;
   }, 0);
 
-  // Build spending by category
+  // Build spending by category (from COMPLETED transactions only)
   const spendingMap = new Map<
     TransactionCategory,
     { amount: number; count: number }
   >();
-  sanitizedTransactions
+  completedTransactions
     .filter((t) => t.type === 'debit')
     .forEach((t) => {
       const current = spendingMap.get(t.category) || { amount: 0, count: 0 };
@@ -180,9 +205,9 @@ export function sanitizeFullAnalysisResult(
     }))
     .sort((a, b) => b.totalAmount - a.totalAmount);
 
-  // Build top merchants (from spending)
+  // Build top merchants (from COMPLETED spending only)
   const merchantMap = new Map<string, MerchantSummary>();
-  sanitizedTransactions
+  completedTransactions
     .filter((t) => t.type === 'debit' && t.merchantName)
     .forEach((t) => {
       const name = t.merchantName!;
